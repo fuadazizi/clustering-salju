@@ -4,3 +4,10 @@ Temperature --> dalam celcius
 Hujan --> dalam mm
 SinarMatahari --> jumlah jam munculnya sinar matahari
 Cloud3pm --> Rasio langit tertutup awan pukul 3pm
+
+hapus kolom
+- ArahAnginTerkencang
+- KecepatanAnginTerkencang
+- ArahAngin9am
+- ArahAngin3pm
+
