@@ -1,4 +1,5 @@
 import csv
+import numpy as np
 
 salju_train = []
 salju_test = []
@@ -13,6 +14,8 @@ with open('salju_train.csv') as csv_file:
 			if row[i] == '':
 				row[i] = 0
 		rawdata.append(row)
+
+# CLEAN DATA
 
 def cleansing_data(rawdata):
 	clean_data = []
@@ -59,8 +62,8 @@ def cleansing_data(rawdata):
 
 	for i in range(len(clean_data)):
 		data = clean_data[i]
-		skor = scaling(T_min, T_max, data['suhumin']) + scaling(T_min, T_max, data['suhumax']) + scaling(hujan_min, hujan_max, data['hujan']) + scaling(penguapan_min, penguapan_max, data['penguapan']) + scaling(sinar_min, sinar_max,data['sinar']) + scaling(kecepatan_min, kecepatan_max, data['kecepatan']) + scaling(lembab_min, lembab_max, data['lembab']) + scaling(tekanan_min, tekanan_min, data['tekanan']) + scaling(awan_min, awan_max, data['awan'])
-		clean_data[i]['skor'] = skor
+		score = scaling(T_min, T_max, data['suhumin']) + scaling(T_min, T_max, data['suhumax']) + scaling(hujan_min, hujan_max, data['hujan']) + scaling(penguapan_min, penguapan_max, data['penguapan']) + scaling(sinar_min, sinar_max,data['sinar']) + scaling(kecepatan_min, kecepatan_max, data['kecepatan']) + scaling(lembab_min, lembab_max, data['lembab']) + scaling(tekanan_min, tekanan_min, data['tekanan']) + scaling(awan_min, awan_max, data['awan'])
+		clean_data[i]['score'] = score
 
 	return clean_data
 
@@ -75,6 +78,26 @@ def scaling(min, max, x):
 
 salju_train = cleansing_data(rawdata)
 
-for data in salju_train:
-	print(data['skor'])
+# MODELLING
+#pick random cluster centroid
+start_random = np.random.randint(0,len(salju_train),4)
+cluster = []
+for i in range(len(start_random)):
+	clusterArr = []
+	clusterArr.append(start_random[i])
+	cluster.append(clusterArr)
+
+for idx_salju in range(len(salju_train)):
+	salju = salju_train[idx_salju]
+	devArr = []
+	for idx_rand in range(len(start_random)):
+		devArr.append(abs(salju['score'] - salju_train[start_random[idx_rand]]['score']))
+	cluster[devArr.index(min(devArr))].append(idx_salju)
+
+print(cluster)
+
+
+'''for data in salju_train:
+	print(data['score'])
+'''
 
