@@ -75,7 +75,7 @@ def minmax(min_now, max_now, x):
 		max_now = x
 
 def scaling(min, max, x):
-	return ((x - min) / (max - min)) * 100 if (max - min) != 0 else 0
+	return ((x - min) / (max - min)) if (max - min) != 0 else 0
 
 salju_train = cleansing_data(rawdata)
 
@@ -83,7 +83,8 @@ salju_train = cleansing_data(rawdata)
 
 # pick random cluster centroid
 starting_point = []
-for i in range(4):
+c = 5
+for i in range(c):
 	randomize = random.randint(0,len(salju_train))
 	if randomize not in starting_point:
 		starting_point.append(randomize)
@@ -98,24 +99,25 @@ def define_cluster(starting_point):
 
 # cluster each data
 while True:
-	score_sum = [0,0,0,0]
-	score_avg = [0,0,0,0]
-	new_start = []
 	cluster = define_cluster(starting_point)
+	score_sum = [0] * len(cluster)
+	new_start = []
+	# define each data into a cluster
+	# data stored in cluster is INDEX OF DATA IN EXCEL
 	for idx_salju in range(len(salju_train)):
 		salju = salju_train[idx_salju]
 		deviation = []
-		for idx_rand in range(len(starting_point)):
-			deviation.append(abs(salju['score'] - salju_train[starting_point[idx_rand]]['score']))
+		for idx_center in range(len(starting_point)):
+			deviation.append(abs(salju['score'] - salju_train[starting_point[idx_center]]['score']))
 		cluster[deviation.index(min(deviation))].append(idx_salju)
 		score_sum[deviation.index(min(deviation))]+= salju['score']
-	# centroid each cluster
+	# re-centroid each cluster
 	for i in range(len(score_sum)):
 		score_avg = (score_sum[i]/len(cluster[i]))
 		centroid = 0
 		min_deviation = abs(salju_train[centroid]['score'] - score_avg)
 		for item in cluster[i]:
-			if (salju_train[item]['score'] < min_deviation) :
+			if ((salju_train[item]['score'] - score_avg) < min_deviation) :
 				min_deviation = abs(salju_train[item]['score'] - score_avg)
 				centroid = item
 		new_start.append(centroid)
@@ -123,14 +125,18 @@ while True:
 		break
 	else:
 		starting_point = new_start
+	print(new_start)
 
 # EVALUATING
 sse_cluster = []
+print(starting_point)
 for row in cluster:
-	centroid = salju_train[row[0]]['iddata'] - 1
+	#centroid = salju_train[row[0]]['iddata'] - 1
+	centroid = row[0]
 	sse = 0
 	for data in row:
-		idx = salju_train[data]['iddata'] - 1
+		#idx = salju_train[data]['iddata'] - 1
+		idx = data
 		sse += (salju_train[idx]['score'] - salju_train[centroid]['score']) ** 2
 	sse_cluster.append(sse)
 
