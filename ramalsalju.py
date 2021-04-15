@@ -116,16 +116,22 @@ while True:
 		score_avg = (score_sum[i]/len(cluster[i]))
 		centroid = 0
 		min_deviation = abs(salju_train[centroid]['score'] - score_avg)
-		for item in cluster[i]:
+		#for item in cluster[i]:
+		for down in range(len(cluster[i])-1,0,-1):
+			item = cluster[i][down]
 			if ((salju_train[item]['score'] - score_avg) < min_deviation) :
 				min_deviation = abs(salju_train[item]['score'] - score_avg)
-				centroid = item
+				centroid = items
 		new_start.append(centroid)
 	if (new_start == starting_point):
 		break
 	else:
 		starting_point = new_start
 	print(new_start)
+	print(cluster[0][len(cluster[0]) - 1])
+	print(cluster[1][len(cluster[1]) - 1])
+	print(cluster[2][len(cluster[2]) - 1])
+	print(cluster[3][len(cluster[3]) - 1])
 
 # EVALUATING
 sse_cluster = []
