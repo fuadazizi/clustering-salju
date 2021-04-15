@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import random
 
 salju_train = []
 salju_test = []
@@ -15,7 +16,7 @@ with open('salju_train.csv') as csv_file:
 				row[i] = 0
 		rawdata.append(row)
 
-# CLEAN DATA
+# CLEAN DATA & SCORING
 
 def cleansing_data(rawdata):
 	clean_data = []
@@ -33,7 +34,7 @@ def cleansing_data(rawdata):
 		# mengecek dan menghapus baris data yang tidak memiliki data salju hari ini dan besok
 		if (data[22] != '' and data[23] != ''):
 			clean = {}
-			clean['iddata'] = data[0]
+			clean['iddata'] = int(data[0])
 			clean['tanggal'] = data[1]
 			clean['kodelokasi'] = data[2]
 			clean['suhumin'] = float(data[3])
@@ -79,23 +80,62 @@ def scaling(min, max, x):
 salju_train = cleansing_data(rawdata)
 
 # MODELLING
-#pick random cluster centroid
-start_random = np.random.randint(0,len(salju_train),4)
-cluster = []
-for i in range(len(start_random)):
-	clusterArr = []
-	clusterArr.append(start_random[i])
-	cluster.append(clusterArr)
 
-for idx_salju in range(len(salju_train)):
-	salju = salju_train[idx_salju]
-	devArr = []
-	for idx_rand in range(len(start_random)):
-		devArr.append(abs(salju['score'] - salju_train[start_random[idx_rand]]['score']))
-	cluster[devArr.index(min(devArr))].append(idx_salju)
+# pick random cluster centroid
+starting_point = []
+for i in range(4):
+	randomize = random.randint(0,len(salju_train))
+	if randomize not in starting_point:
+		starting_point.append(randomize)
 
-print(cluster)
+def define_cluster(starting_point):
+	cluster = []
+	for i in range(len(starting_point)):
+		temp = []
+		temp.append(starting_point[i])
+		cluster.append(temp)
+	return cluster
 
+# cluster each data
+while True:
+	score_sum = [0,0,0,0]
+	score_avg = [0,0,0,0]
+	new_start = []
+	cluster = define_cluster(starting_point)
+	for idx_salju in range(len(salju_train)):
+		salju = salju_train[idx_salju]
+		deviation = []
+		for idx_rand in range(len(starting_point)):
+			deviation.append(abs(salju['score'] - salju_train[starting_point[idx_rand]]['score']))
+		cluster[deviation.index(min(deviation))].append(idx_salju)
+		score_sum[deviation.index(min(deviation))]+= salju['score']
+	# centroid each cluster
+	for i in range(len(score_sum)):
+		score_avg = (score_sum[i]/len(cluster[i]))
+		centroid = 0
+		min_deviation = abs(salju_train[centroid]['score'] - score_avg)
+		for item in cluster[i]:
+			if (salju_train[item]['score'] < min_deviation) :
+				min_deviation = abs(salju_train[item]['score'] - score_avg)
+				centroid = item
+		new_start.append(centroid)
+	if (new_start == starting_point):
+		break
+	else:
+		starting_point = new_start
+
+# EVALUATING
+sse_cluster = []
+for row in cluster:
+	centroid = salju_train[row[0]]['iddata'] - 1
+	sse = 0
+	for data in row:
+		idx = salju_train[data]['iddata'] - 1
+		sse += (salju_train[idx]['score'] - salju_train[centroid]['score']) ** 2
+	sse_cluster.append(sse)
+
+#print(cluster)
+print(sse_cluster)
 
 '''for data in salju_train:
 	print(data['score'])
