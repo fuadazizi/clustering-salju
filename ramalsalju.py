@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 salju_train = []
 salju_test = []
@@ -10,10 +11,6 @@ with open('salju_train.csv') as csv_file:
 	for row in csv_reader:
 		if row[0] == 'id':
 			continue
-		# mengganti setiap attribut yang kosong menjadi 0
-		for i in range(len(row)):
-			if row[i] == '':
-				row[i] = 0
 		rawdata.append(row)
 
 # CLEAN DATA & SCORING
@@ -30,22 +27,20 @@ def cleansing_data(rawdata):
 	awan_min, awan_max = 0, 0
 
 	for data in rawdata:
-		# menghapus beberapa kolom
-		# mengecek dan menghapus baris data yang tidak memiliki data salju hari ini dan besok
-		if (data[22] != '' and data[23] != ''):
+		if (data[3] != '' and data[4] != '' and data[22] != '' and data[23] != ''):
 			clean = {}
 			clean['iddata'] = int(data[0])
 			clean['tanggal'] = data[1]
 			clean['kodelokasi'] = data[2]
 			clean['suhumin'] = float(data[3])
 			clean['suhumax'] = float(data[4])
-			clean['hujan'] = float(data[5])
-			clean['penguapan'] = float(data[6])
-			clean['sinar'] = float(data[7])
-			clean['kecepatan'] = (float(data[12]) + float(data[13])) / 2
-			clean['lembab'] = (float(data[14]) + float(data[15])) / 2
-			clean['tekanan'] = (float(data[16]) + float(data[17])) / 2
-			clean['awan'] = (float(data[18]) + float(data[19])) / 2
+			clean['hujan'] = float(data[5]) if data[5] != '' else 0
+			clean['penguapan'] = float(data[6]) if data[6] != '' else 0
+			clean['sinar'] = float(data[7]) if data[7] != '' else 0
+			clean['kecepatan'] = (float(data[12]) + float(data[13])) / 2 if data[12] != '' and data[13] != '' else 0
+			clean['lembab'] = (float(data[14]) + float(data[15])) / 2 if data[14] != '' and data[15] != '' else 0
+			clean['tekanan'] = (float(data[16]) + float(data[17])) / 2 if data[16] != '' and data[17] != '' else 0
+			clean['awan'] = (float(data[18]) + float(data[19])) / 2 if data[18] != '' and data[19] != '' else 0
 			clean['hariini'] = data[22]
 			clean['besok'] = data[23]
 			clean_data.append(clean)
@@ -79,15 +74,13 @@ def scaling(min, max, x):
 
 salju_train = cleansing_data(rawdata)
 
-# MODELLING
-
 # pick random cluster centroid
-starting_point = []
-c = 5
-for i in range(c):
-	randomize = random.randint(0,len(salju_train))
-	if randomize not in starting_point:
-		starting_point.append(randomize)
+
+def initialize_starting_point(starting_point, x):
+	for i in range(x):
+		randomize = random.randint(0,len(salju_train))
+		if randomize not in starting_point:
+			starting_point.append(randomize)
 
 def define_cluster(starting_point):
 	cluster = []
@@ -97,59 +90,60 @@ def define_cluster(starting_point):
 		cluster.append(temp)
 	return cluster
 
+def count_SSE(cluster, sse_cluster):
+	for row in cluster:
+		centroid = row[0]
+		sse = 0
+		for data in row:
+			idx = data
+			sse += (salju_train[idx]['score'] - salju_train[centroid]['score']) ** 2
+		sse_cluster.append(sse)
+
 # cluster each data
-while True:
-	cluster = define_cluster(starting_point)
-	score_sum = [0] * len(cluster)
-	new_start = []
-	# define each data into a cluster
-	# data stored in cluster is INDEX OF DATA IN EXCEL
-	for idx_salju in range(len(salju_train)):
-		salju = salju_train[idx_salju]
-		deviation = []
-		for idx_center in range(len(starting_point)):
-			deviation.append(abs(salju['score'] - salju_train[starting_point[idx_center]]['score']))
-		cluster[deviation.index(min(deviation))].append(idx_salju)
-		score_sum[deviation.index(min(deviation))]+= salju['score']
-	# re-centroid each cluster
-	for i in range(len(score_sum)):
-		score_avg = (score_sum[i]/len(cluster[i]))
-		centroid = 0
-		min_deviation = abs(salju_train[centroid]['score'] - score_avg)
-		#for item in cluster[i]:
-		for down in range(len(cluster[i])-1,0,-1):
-			item = cluster[i][down]
-			if ((salju_train[item]['score'] - score_avg) < min_deviation) :
-				min_deviation = abs(salju_train[item]['score'] - score_avg)
-				centroid = items
-		new_start.append(centroid)
-	if (new_start == starting_point):
-		break
-	else:
-		starting_point = new_start
-	print(new_start)
-	print(cluster[0][len(cluster[0]) - 1])
-	print(cluster[1][len(cluster[1]) - 1])
-	print(cluster[2][len(cluster[2]) - 1])
-	print(cluster[3][len(cluster[3]) - 1])
+c = 8
+sse_cluster_total = []
+for n_iter in range(2,c+1,1):
+	starting_point = []
+	cluster = []
+	sse_cluster = []
+	initialize_starting_point(starting_point, n_iter)
+	while True:
+		cluster = define_cluster(starting_point)
+		score_sum = [0] * len(cluster)
+		new_start = []
+		# define each data into a cluster
+		# data stored in cluster is INDEX OF DATA IN EXCEL
+		for idx_salju in range(len(salju_train)): 						# long loop
+			salju = salju_train[idx_salju]
+			deviation = []
+			for idx_center in range(len(starting_point)):
+				deviation.append(abs(salju['score'] - salju_train[starting_point[idx_center]]['score']))
+			cluster[deviation.index(min(deviation))].append(idx_salju)
+			score_sum[deviation.index(min(deviation))]+= salju['score']
+		# re-centroid each cluster
+		for i in range(len(score_sum)):
+			score_mean = (score_sum[i]/len(cluster[i]))
+			centroid = starting_point[0]
+			min_deviation = abs(salju_train[centroid]['score'] - score_mean)
+			for item in cluster[i]:										# long loop
+				if (abs(salju_train[item]['score'] - score_mean) < min_deviation) :
+					min_deviation = abs(salju_train[item]['score'] - score_mean)
+					centroid = item
+			new_start.append(centroid)
+		if (new_start == starting_point):
+			break
+		else:
+			starting_point = new_start
+		print("loop")
+	print("===========")
+	count_SSE(cluster, sse_cluster)
+	sse_cluster_total.append(sum(sse_cluster))
 
-# EVALUATING
-sse_cluster = []
-print(starting_point)
-for row in cluster:
-	#centroid = salju_train[row[0]]['iddata'] - 1
-	centroid = row[0]
-	sse = 0
-	for data in row:
-		#idx = salju_train[data]['iddata'] - 1
-		idx = data
-		sse += (salju_train[idx]['score'] - salju_train[centroid]['score']) ** 2
-	sse_cluster.append(sse)
-
-#print(cluster)
-print(sse_cluster)
-
-'''for data in salju_train:
-	print(data['score'])
-'''
-
+xAxis = []
+for i in range(2,len(sse_cluster_total)+2,1):
+	xAxis.append(i)
+plt.title("SSE Result")
+plt.plot(xAxis, sse_cluster_total, linewidth=0.8)
+plt.xlabel("Number of Cluster")
+plt.ylabel("SSE")
+plt.show()

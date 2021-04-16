@@ -16,5 +16,6 @@ metode cleansing data
 
 2. mengganti dari 9am dan 3pm menjadi rata-ratanya
 3. mengganti nilai '' menjadi 0
+4. menghapus baris yang nilai suhumin, suhumax, saljuhariini, dan saljubesok kosong
 
 
