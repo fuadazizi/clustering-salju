@@ -102,6 +102,7 @@ def count_SSE(cluster, sse_cluster):
 # cluster each data
 c = 8
 sse_cluster_total = []
+cluster = []
 for n_iter in range(2,c+1,1):
 	starting_point = []
 	cluster = []
@@ -110,22 +111,27 @@ for n_iter in range(2,c+1,1):
 	while True:
 		cluster = define_cluster(starting_point)
 		score_sum = [0] * len(cluster)
+		arr_score = []
+		for a in range(len(cluster)):
+			arr_score.append([])
 		new_start = []
 		# define each data into a cluster
 		# data stored in cluster is INDEX OF DATA IN EXCEL
-		for idx_salju in range(len(salju_train)): 						# long loop
+		for idx_salju in range(len(salju_train)): 						
 			salju = salju_train[idx_salju]
 			deviation = []
 			for idx_center in range(len(starting_point)):
 				deviation.append(abs(salju['score'] - salju_train[starting_point[idx_center]]['score']))
-			cluster[deviation.index(min(deviation))].append(idx_salju)
-			score_sum[deviation.index(min(deviation))]+= salju['score']
+			min_idx = deviation.index(min(deviation))
+			cluster[min_idx].append(idx_salju)
+			score_sum[min_idx]+= salju['score']
 		# re-centroid each cluster
 		for i in range(len(score_sum)):
 			score_mean = (score_sum[i]/len(cluster[i]))
+			
 			centroid = starting_point[0]
 			min_deviation = abs(salju_train[centroid]['score'] - score_mean)
-			for item in cluster[i]:										# long loop
+			for item in cluster[i]:										
 				if (abs(salju_train[item]['score'] - score_mean) < min_deviation) :
 					min_deviation = abs(salju_train[item]['score'] - score_mean)
 					centroid = item
@@ -134,8 +140,6 @@ for n_iter in range(2,c+1,1):
 			break
 		else:
 			starting_point = new_start
-		print("loop")
-	print("===========")
 	count_SSE(cluster, sse_cluster)
 	sse_cluster_total.append(sum(sse_cluster))
 
